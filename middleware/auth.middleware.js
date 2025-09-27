@@ -1,20 +1,25 @@
+// src/middleware/auth.middleware.js
 const jwt = require("jsonwebtoken");
 
 const verifyToken = (req, res, next) => {
-  // Extraemos el token del header Authorization
-  const token = req.headers.authorization?.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({ message: "Token no proporcionado" });
-  }
-
   try {
-    // Verificamos si el token es válido y lo decodificamos
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return res.status(401).json({ message: "No se proporcionó el token de autenticación" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "Formato de token inválido" });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // Guardamos los datos del usuario en la request
-    next(); // Continuamos con la siguiente función (controlador)
+    req.user = decoded; // guardamos los datos en la request
+    next();
   } catch (error) {
-    return res.status(403).json({ message: "Token inválido" });
+    console.error("Error en verifyToken:", error.message);
+    return res.status(403).json({ message: "Token inválido o expirado" });
   }
 };
 

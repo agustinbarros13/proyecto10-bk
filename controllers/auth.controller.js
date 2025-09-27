@@ -1,14 +1,5 @@
 const User = require("../models/User");
-const jwt = require("jsonwebtoken");
-
-// Generador de tokens JWT
-const generateToken = (user) => {
-  return jwt.sign(
-    { id: user._id, email: user.email },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" } // el token dura 7 días
-  );
-};
+const generateToken = require("../utils/generateToken");
 
 // Registro de nuevo usuario
 const register = async (req, res) => {
@@ -17,8 +8,9 @@ const register = async (req, res) => {
   try {
     // Verificamos si el email ya está en uso
     const existingUser = await User.findOne({ email });
-    if (existingUser)
+    if (existingUser) {
       return res.status(400).json({ message: "El email ya está registrado." });
+    }
 
     // Creamos el nuevo usuario
     const newUser = new User({ name, email, password });
@@ -47,13 +39,15 @@ const login = async (req, res) => {
   try {
     // Buscamos al usuario por email
     const user = await User.findOne({ email });
-    if (!user)
+    if (!user) {
       return res.status(404).json({ message: "Usuario no encontrado" });
+    }
 
     // Comparamos contraseñas
     const isMatch = await user.comparePassword(password);
-    if (!isMatch)
+    if (!isMatch) {
       return res.status(401).json({ message: "Contraseña incorrecta" });
+    }
 
     // Generamos y devolvemos token
     const token = generateToken(user);
@@ -71,7 +65,6 @@ const login = async (req, res) => {
   }
 };
 
-// Exportamos las funciones
 module.exports = {
   register,
   login,
