@@ -1,6 +1,6 @@
 const Event = require("../models/Event");
 
-// Crear evento
+// ✅ Crear evento
 const createEvent = async (req, res) => {
   try {
     const { title, description, date, location } = req.body;
@@ -27,11 +27,11 @@ const createEvent = async (req, res) => {
   }
 };
 
-// Listar todos los eventos (ordenados por fecha)
+// ✅ Listar todos los eventos (ordenados por fecha)
 const getAllEvents = async (req, res) => {
   try {
     const events = await Event.find()
-      .sort({ date: -1 }) // ⬅️ mejora: ordenar del más nuevo al más viejo
+      .sort({ date: -1 })
       .populate("createdBy", "name email")
       .populate("attendees", "name email");
 
@@ -42,7 +42,7 @@ const getAllEvents = async (req, res) => {
   }
 };
 
-// Buscar eventos
+// ✅ Buscar eventos por texto (título, descripción o ubicación)
 const searchEvents = async (req, res) => {
   try {
     const { q } = req.query;
@@ -57,7 +57,7 @@ const searchEvents = async (req, res) => {
         { location: regex },
       ],
     })
-      .sort({ date: -1 }) // ⬅️ mejora: resultados también ordenados
+      .sort({ date: -1 })
       .populate("createdBy", "name email")
       .populate("attendees", "name email");
 
@@ -68,7 +68,7 @@ const searchEvents = async (req, res) => {
   }
 };
 
-// Confirmar asistencia
+// ✅ Confirmar asistencia
 const attendEvent = async (req, res) => {
   try {
     const eventId = req.params.id;
@@ -76,9 +76,7 @@ const attendEvent = async (req, res) => {
 
     const event = await Event.findById(eventId);
 
-    if (!event) {
-      return res.status(404).json({ message: "Evento no encontrado" });
-    }
+    if (!event) return res.status(404).json({ message: "Evento no encontrado" });
 
     if (event.attendees.includes(userId)) {
       return res.status(400).json({ message: "Ya estás anotado a este evento" });
@@ -94,16 +92,39 @@ const attendEvent = async (req, res) => {
   }
 };
 
-// Obtener evento por ID
+// ✅ Cancelar asistencia
+const removeAttendance = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const userId = req.user.id;
+
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ message: "Evento no encontrado" });
+
+    if (!event.attendees.includes(userId)) {
+      return res.status(400).json({ message: "No estás registrado en este evento" });
+    }
+
+    event.attendees = event.attendees.filter(
+      (attendeeId) => attendeeId.toString() !== userId
+    );
+
+    await event.save();
+    res.status(200).json({ message: "Asistencia cancelada correctamente", event });
+  } catch (error) {
+    console.error("Error al cancelar asistencia:", error);
+    res.status(500).json({ message: "Error al cancelar asistencia", error });
+  }
+};
+
+// ✅ Obtener evento por ID
 const getEventById = async (req, res) => {
   try {
     const event = await Event.findById(req.params.id)
       .populate("createdBy", "name email")
       .populate("attendees", "name email");
 
-    if (!event) {
-      return res.status(404).json({ message: "Evento no encontrado" });
-    }
+    if (!event) return res.status(404).json({ message: "Evento no encontrado" });
 
     res.status(200).json(event);
   } catch (error) {
@@ -117,5 +138,6 @@ module.exports = {
   getAllEvents,
   searchEvents,
   attendEvent,
+  removeAttendance,
   getEventById,
 };

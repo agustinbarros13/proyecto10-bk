@@ -6,6 +6,7 @@ const {
   getAllEvents,
   searchEvents,
   attendEvent,
+  removeAttendance, // 👈 NUEVO
   getEventById,
 } = require("../controllers/events.controller");
 
@@ -26,5 +27,8 @@ router.post("/create", verifyToken, upload.single("poster"), createEvent);
 
 // POST /api/events/:id/attend -> Confirmar asistencia (requiere auth)
 router.post("/:id/attend", verifyToken, attendEvent);
+
+// DELETE /api/events/:id/attend -> Quitar asistencia (requiere auth)
+router.delete("/:id/attend", verifyToken, removeAttendance); // 👈 NUEVO
 
 module.exports = router;

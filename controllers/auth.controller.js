@@ -6,17 +6,14 @@ const register = async (req, res) => {
   const { name, email, password } = req.body;
 
   try {
-    // Verificamos si el email ya está en uso
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "El email ya está registrado." });
     }
 
-    // Creamos el nuevo usuario
     const newUser = new User({ name, email, password });
     await newUser.save();
 
-    // Generamos token y lo devolvemos
     const token = generateToken(newUser);
     res.status(201).json({
       message: "Usuario registrado correctamente.",
@@ -37,19 +34,12 @@ const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Buscamos al usuario por email
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "Usuario no encontrado" });
-    }
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-    // Comparamos contraseñas
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(401).json({ message: "Contraseña incorrecta" });
-    }
+    if (!isMatch) return res.status(401).json({ message: "Contraseña incorrecta" });
 
-    // Generamos y devolvemos token
     const token = generateToken(user);
     res.status(200).json({
       message: "Inicio de sesión exitoso",
@@ -65,7 +55,29 @@ const login = async (req, res) => {
   }
 };
 
+// Obtener perfil del usuario autenticado
+const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    // También buscamos los eventos a los que asiste
+    const Event = require("../models/Event");
+    const attendingEvents = await Event.find({ attendees: user._id });
+
+    res.status(200).json({
+      user,
+      attendingEvents,
+    });
+  } catch (error) {
+    console.error("Error al obtener perfil:", error);
+    res.status(500).json({ message: "Error al obtener perfil", error });
+  }
+};
+
 module.exports = {
   register,
   login,
+  getProfile,
 };
